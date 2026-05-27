@@ -1,0 +1,163 @@
+🧩 Optional: Set up your local environment for the ungraded labs
+If you’d like to try the ungraded labs on your own machine, follow these steps:
+
+💡 Note: When you download an ungraded lab to run locally, don’t forget to also download all the files it depends on (such as helper scripts, config files, or data files).
+
+To do this, open the lesson that contains the coding files you want to download. Once in the lesson, see the Jupyter Notebook embedded in the platform, go to the top menu and select File and then click Open. From there, you can download the notebook and any related files to your local machine.
+
+Make sure you have Python 3.10+ installed.
+
+(Recommended) Create and activate a virtual environment:
+
+python -m venv venv
+source venv/bin/activate     # On Windows: venv\Scripts\activate
+Create a new file named requirements.txt and copy the code provided at the end of this section.
+
+Install all required libraries:
+
+pip install -r requirements.txt
+(Optional) Link this environment to your IDE or Jupyter notebook:
+
+python -m ipykernel install --user --name=venv
+After that, you’ll be ready to explore the ungraded labs locally 🚀
+
+📄 Content for requirements.txt
+# === Agent + LLM Tools ===
+aisuite==0.1.11
+anthropic
+docstring-parser
+markdown
+mistralai
+openai
+qrcode
+tavily-python>=0.7.12
+textstat
+vertexai
+
+# === Web Framework + API ===
+fastapi
+pydantic
+pydantic[email]
+python-dotenv
+python-multipart
+requests
+sqlalchemy
+uvicorn
+
+# === Notebook Experience ===
+ipywidgets
+jupyter_server
+nbclassic
+notebook
+
+# === Data Analysis / Display (Optional Enhancements) ===
+duckdb
+matplotlib
+pandas
+seaborn
+tabulate
+tinydb
+
+# === Machine Learning / NLP (Optional Enhancements) ===
+jinja2
+psycopg2-binary
+scikit-learn
+Wikipedia
+
+
+
+
+response = client.chat.completions.create(
+    model="openai:o4-mini",
+    messages=[{"role": "user", "content": (
+        prompt_
+    )}],
+    tools=[
+        email_tools.search_unread_from_sender,
+        email_tools.list_unread_emails,
+        email_tools.search_emails,
+        email_tools.get_email,
+        email_tools.mark_email_as_read,
+        email_tools.send_email,
+        email_tools.delete_email
+    ],
+    max_turns=5
+)
+
+
+
+def market_research_agent(return_messages: bool = False):
+
+    utils.log_agent_title_html("Market Research Agent", "🕵️‍♂️")
+
+    prompt_ = f"""
+You are a fashion market research agent tasked with preparing a trend analysis for a summer sunglasses campaign.
+
+Your goal:
+1. Explore current fashion trends related to sunglasses using web search.
+2. Review the internal product catalog to identify items that align with those trends.
+3. Recommend one or more products from the catalog that best match emerging trends.
+4. If needed, today date is {datetime.now().strftime("%Y-%m-%d")}.
+
+You can call the following tools:
+- tavily_search_tool: to discover external web trends.
+- product_catalog_tool: to inspect the internal sunglasses catalog.
+
+Once your analysis is complete, summarize:
+- The top 2–3 trends you found.
+- The product(s) from the catalog that fit these trends.
+- A justification of why they are a good fit for the summer campaign.
+"""
+    messages = [{"role": "user", "content": prompt_}]
+    tools_ = tools.get_available_tools()
+
+    while True:
+        response = client.chat.completions.create(
+            model="openai:o4-mini",
+            messages=messages,
+            tools=tools_,
+            tool_choice="auto"
+        )
+
+        msg = response.choices[0].message
+
+        if msg.content:
+            utils.log_final_summary_html(msg.content)
+            return (msg.content, messages) if return_messages else msg.content
+
+        if msg.tool_calls:
+            for tool_call in msg.tool_calls:
+                utils.log_tool_call_html(tool_call.function.name, tool_call.function.arguments)
+                result = tools.handle_tool_call(tool_call)
+                utils.log_tool_result_html(result)
+
+                messages.append(msg)
+                messages.append(tools.create_tool_response_message(tool_call, result))
+        else:
+            utils.log_unexpected_html()
+            return ("[⚠️ Unexpected: No tool_calls or content returned]", messages) if return_messages else "[⚠️ Unexpected: No tool_calls or content returned]"
+        
+
+            # Step 1: Generate prompt and caption using aisuite
+    system_message = (
+        "You are a visual marketing assistant. Based on the input trend insights, "
+        "write a creative and visual prompt for an AI image generation model, and also a short caption."
+    )
+
+    user_prompt = f"""
+Trend insights:
+{trend_insights}
+
+Please output:
+1. A vivid, descriptive prompt to guide image generation.
+2. A marketing caption in style: {caption_style}.
+
+Respond in this format:
+{{"prompt": "...", "caption": "..."}}
+"""
+
+
+import aisuite as ai
+# Create an instance of the AISuite client
+client = ai.Client()
+
